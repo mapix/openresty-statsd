@@ -1,8 +1,32 @@
 local Statsd = {}
+local os = require "os"
+local math = require "math"
 
-Statsd.time  = function (bucket, time) Statsd.register(bucket, time .. "|ms") end
-Statsd.count = function (bucket, n)    Statsd.register(bucket, n .. "|c") end
-Statsd.incr  = function (bucket)       Statsd.count(bucket, 1) end
+math.randomseed(os.time())
+
+Statsd.time  = function (bucket, time, sample_rate)
+  if sample_rate and (not (sample_rate == 1 or math.random() <= sample_rate)) then
+    return
+  end
+  Statsd.register(bucket, time .. "|ms")
+end
+
+Statsd.count = function (bucket, n, sample_rate)
+  if sample_rate and (not (sample_rate == 1 or math.random() <= sample_rate)) then
+    return
+  end
+  local suffix
+  if sample_rate and sample_rate ~= 1 then
+    suffix = "|c|@" .. sample_rate
+  else
+    suffix = "|c"
+  end
+  Statsd.register(bucket, n .. suffix)
+end
+
+Statsd.incr  = function (bucket, sample_rate)
+  Statsd.count(bucket, 1, sample_rate)
+end
 
 Statsd.buffer = {} -- this table will be shared per worker process
                    -- if lua_code_cache is off, it will be cleared every request
