@@ -33,16 +33,16 @@ Statsd.buffer = {} -- this table will be shared per worker process
 
 Statsd.flush = function(sock, host, port)
    if sock then -- send buffer
-      pcall(function()
+     pcall(function()
                local udp = sock()
                udp:setpeername(host, port)
-               udp:send(Statsd.buffer)
+               for k in pairs(Statsd.buffer) do
+                 udp:send(Statsd.buffer[k])
+               end
                udp:close()
             end)
    end
-   
-   -- empty buffer
-   for k in pairs(Statsd.buffer) do Statsd.buffer[k] = nil end
+   Statsd.buffer = {}
 end
 
 Statsd.register = function (bucket, suffix, sample_rate)
